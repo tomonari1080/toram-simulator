@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="トーラムオンライン（Toram Online）の装備構築提案シミュレーター">
+  <title>トーラム装備構築提案</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="container">
+  <!-- ヘッダー -->
+  <header class="app-header">
+    <div class="app-title-group">
+      <h1 class="app-title">トーラム装備構築提案</h1>
+    </div>
+    <div class="data-bar">
+      <div class="csv-badges">
+        <span class="csv-badge" id="badge-sub">サブ: -</span>
+        <span class="csv-badge" id="badge-add">追加: -</span>
+        <span class="csv-badge" id="badge-spec">特殊: -</span>
+        <span class="csv-badge" id="badge-crys">◇: -</span>
+        <span class="csv-badge" id="badge-food">料理: -</span>
+        <span class="csv-badge" id="badge-reg">レジスタレット: -</span>
+        <span class="csv-badge" id="badge-boss">ボス: -</span>
+        <span class="csv-badge" id="badge-avatar">おしゃれ: -</span>
+        <span class="csv-badge" id="badge-item">アイテム: -</span>
+        <span class="csv-badge" id="badge-passive">パッシブ: -</span>
+        <span class="csv-badge" id="badge-active">バフ: -</span>
+        <span class="csv-badge" id="badge-trait">特性: -</span>
+      </div>
+      <button type="button" class="btn-secondary" id="btn-load">データを再読み込み</button>
+    </div>
+    <div id="load-msg" style="width:100%; font-size:0.78rem; color:var(--muted);">データ読み込み中...</div>
+  </header>
+
+  <!-- 1. ステータス -->
+  <details open>
+    <summary>1. 基礎・特殊ステータス</summary>
+    <div class="panel-body grid">
+      <div class="field"><label for="p-lv">プレイヤーLv</label><input type="number" id="p-lv" value="330"></div>
+      <div class="field"><label for="p-str">STR</label><input type="number" id="p-str" value="510"></div>
+      <div class="field"><label for="p-dex">DEX</label><input type="number" id="p-dex" value="337"></div>
+      <div class="field"><label for="p-int">INT</label><input type="number" id="p-int" value="1"></div>
+      <div class="field"><label for="p-agi">AGI</label><input type="number" id="p-agi" value="1"></div>
+      <div class="field"><label for="p-vit">VIT</label><input type="number" id="p-vit" value="1"></div>
+      <div class="field"><label for="p-crt">CRT</label><input type="number" id="p-crt" value="1"></div>
+      <div class="field"><label for="p-tec">TEC</label><input type="number" id="p-tec" value="1"></div>
+      <div class="field"><label for="p-men">MEN</label><input type="number" id="p-men" value="1"></div>
+      <div class="field"><label for="p-luk">LUK</label><input type="number" id="p-luk" value="1"></div>
+    </div>
+  </details>
+
+  <!-- 2. メイン・サブ・体 -->
+  <details open>
+    <summary>2. メイン武器・サブ武器・体装備</summary>
+    <div class="panel-body">
+      <div class="sub-title" style="margin-top:0;">メイン武器</div>
+      <div class="grid">
+        <div class="field">
+          <label for="w-type">武器種</label>
+          <select id="w-type">
+            <option value="両手剣">両手剣</option>
+            <option value="片手剣">片手剣</option>
+            <option value="弓">弓</option>
+            <option value="自動弓">自動弓</option>
+            <option value="杖">杖</option>
+            <option value="魔導具">魔導具</option>
+            <option value="旋風槍">旋風槍</option>
+            <option value="抜刀剣">抜刀剣</option>
+            <option value="手甲">手甲</option>
+            <option value="素手">素手</option>
+          </select>
+        </div>
+        <div class="field"><label for="w-atk">基礎ATK</label><input type="number" id="w-atk" value="1095"></div>
+        <div class="field"><label for="w-ref">精錬値</label><input type="number" id="w-ref" value="15"></div>
+        <div class="field"><label for="w-stab">安定率</label><input type="number" id="w-stab" value="70"></div>
+      </div>
+
+      <div class="sub-title">サブ武器</div>
+      <div class="grid">
+        <div class="field">
+          <label for="sub-type">サブ種類</label>
+          <select id="sub-type">
+            <option value="なし">なし</option>
+            <option value="盾">盾</option>
+            <option value="短剣">短剣</option>
+            <option value="矢">矢</option>
+            <option value="魔導具">魔導具</option>
+            <option value="手甲">手甲</option>
+            <option value="片手剣">片手剣</option>
+            <option value="抜刀剣">抜刀剣</option>
+            <option value="巻物">忍術巻物</option>
+          </select>
+        </div>
+        <div class="field"><label for="sub-ref">サブ精錬値</label><input type="number" id="sub-ref" value="15"></div>
+        <div class="field sub-sword-only" style="display:none;"><label for="sub-atk">サブ基礎ATK</label><input type="number" id="sub-atk" value="730"></div>
+        <div class="field sub-sword-only" style="display:none;"><label for="sub-stab">サブ安定率</label><input type="number" id="sub-stab" value="80"></div>
+        <div class="field sub-sword-only" style="display:none;">
+          <label for="sub-elem">サブ属性</label>
+          <select id="sub-elem">
+            <option value="無">無</option>
+            <option value="火">火</option>
+            <option value="水">水</option>
+            <option value="風">風</option>
+            <option value="地">地</option>
+            <option value="光">光</option>
+            <option value="闇">闇</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sub-title">体装備</div>
+      <div class="grid">
+        <div class="field">
+          <label for="b-type">装甲タイプ (改造)</label>
+          <select id="b-type">
+            <option value="通常">通常</option>
+            <option value="軽量化">軽量化</option>
+            <option value="重量化">重量化</option>
+            <option value="なし">なし</option>
+          </select>
+        </div>
+        <div class="field"><label for="b-def">基礎DEF</label><input type="number" id="b-def" value="400"></div>
+        <div class="field"><label for="b-ref">精錬値</label><input type="number" id="b-ref" value="15"></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- 3. プロパティ・固定入力・クリスタスロット -->
+  <details open>
+    <summary>3. プロパティ付与 ＆ 装備・クリスタ指定</summary>
+    <div class="panel-body">
+      <div class="sub-title" style="margin-top:0;">装備プロパティ</div>
+      <div class="grid-w">
+        <div class="prop-group-card" id="card-manual-main">
+          <div class="prop-equip-header">
+            <label class="prop-equip-label" for="custom-name-main">メイン武器</label>
+            <input type="text" id="custom-name-main" class="prop-equip-name" placeholder="装備名">
+          </div>
+          <div style="margin-bottom:8px;">
+            <select id="weapon-preset-select" aria-label="武器プロパティプリセット" style="width:100%;">
+              <option value="">-- プリセットから反映 --</option>
+            </select>
+          </div>
+          <div id="prop-main"></div>
+          <button type="button" class="btn-small" onclick="addPropRow('prop-main')">+ 追加</button>
+        </div>
+
+        <div class="prop-group-card" id="card-manual-sub">
+          <div class="prop-equip-header">
+            <label class="prop-equip-label" for="custom-name-sub">サブ武器</label>
+            <input type="text" id="custom-name-sub" class="prop-equip-name" placeholder="自動探索">
+          </div>
+          <div style="margin-bottom:8px;">
+            <select id="sub-preset-select" aria-label="サブ武器プリセット" style="width:100%;">
+              <option value="">-- 自動探索 --</option>
+            </select>
+          </div>
+          <div id="prop-sub"></div>
+          <button type="button" class="btn-small" onclick="addPropRow('prop-sub')">+ 追加</button>
+        </div>
+
+        <div class="prop-group-card" id="card-manual-body">
+          <div class="prop-equip-header">
+            <label class="prop-equip-label" for="custom-name-body">体装備</label>
+            <input type="text" id="custom-name-body" class="prop-equip-name" placeholder="装備名">
+          </div>
+          <div style="margin-bottom:8px;">
+            <select id="body-preset-select" aria-label="体装備プロパティプリセット" style="width:100%;">
+              <option value="">-- プリセットから反映 --</option>
+            </select>
+          </div>
+          <div id="prop-body"></div>
+          <button type="button" class="btn-small" onclick="addPropRow('prop-body')">+ 追加</button>
+        </div>
+
+        <div class="prop-group-card" id="card-manual-add">
+          <div class="prop-equip-header">
+            <label class="prop-equip-label" for="custom-name-add">追加装備</label>
+            <input type="text" id="custom-name-add" class="prop-equip-name" placeholder="自動探索">
+          </div>
+          <div style="margin-bottom:8px;">
+            <select id="add-preset-select" aria-label="追加装備プリセット" style="width:100%;">
+              <option value="">-- 自動探索 --</option>
+            </select>
+          </div>
+          <div id="prop-add"></div>
+          <button type="button" class="btn-small" onclick="addPropRow('prop-add')">+ 追加</button>
+        </div>
+
+        <div class="prop-group-card" id="card-manual-spec">
+          <div class="prop-equip-header">
+            <label class="prop-equip-label" for="custom-name-spec">特殊装備</label>
+            <input type="text" id="custom-name-spec" class="prop-equip-name" placeholder="自動探索">
+          </div>
+          <div style="margin-bottom:8px;">
+            <select id="spec-preset-select" aria-label="特殊装備プリセット" style="width:100%;">
+              <option value="">-- 自動探索 --</option>
+            </select>
+          </div>
+          <div id="prop-spec"></div>
+          <button type="button" class="btn-small" onclick="addPropRow('prop-spec')">+ 追加</button>
+        </div>
+      </div>
+
+      <div class="sub-title">クリスタ</div>
+      <div class="grid-crysta">
+        <!-- メイン武器クリスタ -->
+        <div class="crysta-slot-box">
+          <div class="crysta-slot-header">
+            <span>メイン武器</span>
+            <select id="slot-main" aria-label="メイン スロ数">
+              <option value="2" selected>2スロ</option>
+              <option value="1">1スロ</option>
+              <option value="0">0スロ</option>
+            </select>
+          </div>
+          <div class="field"><label for="fix-main-c1">Slot 1</label><input type="text" id="fix-main-c1" list="dl-crys-main" placeholder="自動探索"></div>
+          <div class="field"><label for="fix-main-c2">Slot 2</label><input type="text" id="fix-main-c2" list="dl-crys-main" placeholder="自動探索"></div>
+        </div>
+
+        <!-- 体装備クリスタ -->
+        <div class="crysta-slot-box">
+          <div class="crysta-slot-header">
+            <span>体装備</span>
+            <select id="slot-body" aria-label="体装備 スロ数">
+              <option value="2" selected>2スロ</option>
+              <option value="1">1スロ</option>
+              <option value="0">0スロ</option>
+            </select>
+          </div>
+          <div class="field"><label for="fix-body-c1">Slot 1</label><input type="text" id="fix-body-c1" list="dl-crys-body" placeholder="自動探索"></div>
+          <div class="field"><label for="fix-body-c2">Slot 2</label><input type="text" id="fix-body-c2" list="dl-crys-body" placeholder="自動探索"></div>
+        </div>
+
+        <!-- 追加装備クリスタ -->
+        <div class="crysta-slot-box">
+          <div class="crysta-slot-header">
+            <span>追加装備</span>
+            <select id="slot-add" aria-label="追加 スロ数">
+              <option value="2" selected>2スロ</option>
+              <option value="1">1スロ</option>
+              <option value="0">0スロ</option>
+            </select>
+          </div>
+          <div class="field"><label for="fix-add-c1">Slot 1</label><input type="text" id="fix-add-c1" list="dl-crys-add" placeholder="自動探索"></div>
+          <div class="field"><label for="fix-add-c2">Slot 2</label><input type="text" id="fix-add-c2" list="dl-crys-add" placeholder="自動探索"></div>
+        </div>
+
+        <!-- 特殊装備クリスタ -->
+        <div class="crysta-slot-box">
+          <div class="crysta-slot-header">
+            <span>特殊装備</span>
+            <select id="slot-spec" aria-label="特殊 スロ数">
+              <option value="2" selected>2スロ</option>
+              <option value="1">1スロ</option>
+              <option value="0">0スロ</option>
+            </select>
+          </div>
+          <div class="field"><label for="fix-spec-c1">Slot 1</label><input type="text" id="fix-spec-c1" list="dl-crys-spec" placeholder="自動探索"></div>
+          <div class="field"><label for="fix-spec-c2">Slot 2</label><input type="text" id="fix-spec-c2" list="dl-crys-spec" placeholder="自動探索"></div>
+        </div>
+      </div>
+      <datalist id="dl-crys-main"></datalist>
+      <datalist id="dl-crys-body"></datalist>
+      <datalist id="dl-crys-add"></datalist>
+      <datalist id="dl-crys-spec"></datalist>
+
+      <div class="trait-avatar-layout">
+        <div class="trait-column">
+          <div class="sub-title">特性</div>
+          <div id="trait-presets" class="trait-parts-grid"></div>
+        </div>
+
+        <div class="avatar-column">
+          <div class="sub-title">おしゃれ装備</div>
+          <div id="avatar-presets" class="avatar-parts-grid"></div>
+          <div id="prop-avatar" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="sub-title">外部バフ・料理・レジスタレット・スキル</div>
+      <div class="grid-w">
+        <div class="prop-group-card" style="grid-column: span 2;">
+          <div class="prop-group-title">料理</div>
+          <div id="food-presets"></div>
+          <div id="prop-food"></div>
+        </div>
+        <div class="prop-group-card" style="grid-column: span 2;">
+          <div class="prop-group-title">レジスタレット</div>
+          <div id="registlet-presets" class="registlet-grid"></div>
+          <div id="prop-registlet"></div>
+          <button type="button" class="btn-small" onclick="addPropRow('prop-registlet')">+ 追加</button>
+        </div>
+        <div class="prop-group-card" style="grid-column: span 2;">
+          <div class="prop-group-title">アイテムバフ</div>
+          <div id="item-buff-presets" class="item-buff-grid"></div>
+          <div id="prop-item" style="display:none;"></div>
+        </div>
+        <div class="prop-group-card" style="grid-column: span 2;">
+          <div class="prop-group-title">パッシブスキル</div>
+          <div id="passive-presets" class="passive-grid"></div>
+          <div id="prop-passive"></div>
+          <button type="button" class="btn-small" onclick="addPropRow('prop-passive')">+ 追加</button>
+        </div>
+        <div class="prop-group-card" style="grid-column: span 2;">
+          <div class="prop-group-title">バフスキル</div>
+          <div id="active-presets" class="passive-grid"></div>
+          <div id="prop-active"></div>
+          <button type="button" class="btn-small" onclick="addPropRow('prop-active')">+ 追加</button>
+        </div>
+        <div class="prop-group-card">
+          <div class="prop-group-title">ギルド飯</div>
+          <div id="guild-food-presets"></div>
+          <div id="prop-guild"></div>
+          <button type="button" class="btn-small" onclick="addPropRow('prop-guild')">+ 追加</button>
+        </div>
+        <div class="prop-group-card"><div class="prop-group-title">エリアバフ</div><div id="prop-area"></div><button type="button" class="btn-small" onclick="addPropRow('prop-area')">+ 追加</button></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- 4. スキル・敵 -->
+  <details open>
+    <summary>4. スキル・敵情報</summary>
+    <div class="panel-body">
+      <div class="grid">
+        <div class="field">
+          <label for="sk-ref">参照ステータス</label>
+          <select id="sk-ref">
+            <option value="atk">ATK</option>
+            <option value="matk">MATK</option>
+            <option value="datk">DATK (双剣用)</option>
+            <option value="watk">WATK (ウィザード用)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sk-type">ダメージ種別</label>
+          <select id="sk-type">
+            <option value="phys">物理</option>
+            <option value="mag">魔法</option>
+          </select>
+        </div>
+        <div class="field"><label for="sk-mult">スキル倍率(%)</label><input type="number" id="sk-mult" value="1000"></div>
+        <div class="field"><label for="sk-flat">スキル固定値</label><input type="number" id="sk-flat" value="500"></div>
+        <div class="field">
+          <label for="sk-unsh">抜刀判定</label>
+          <select id="sk-unsh">
+            <option value="0">なし</option>
+            <option value="1">あり</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sk-dist">距離判定</label>
+          <select id="sk-dist">
+            <option value="short">近距離</option>
+            <option value="long">遠距離</option>
+          </select>
+        </div>
+        <div class="field"><label for="sk-combo">コンボ倍率(%)</label><input type="number" id="sk-combo" value="150"></div>
+        <div class="field"><label for="sk-proration">慣れ倍率(%)</label><input type="number" id="sk-proration" value="150"></div>
+        <div class="field"><label for="sk-mp">実消費MP</label><input type="number" id="sk-mp" min="0" value="0"></div>
+        <div class="field"><label for="slv-spellb">スペルバーストSLv</label><input type="number" id="slv-spellb" value="0"></div>
+        <div class="field"><label for="slv-knuckle">破壊者+化勁 SLv合算</label><input type="number" id="slv-knuckle" value="0"></div>
+      </div>
+
+      <div class="sub-title">敵情報</div>
+
+      <div class="grid-w" style="margin-bottom: 12px;">
+        <div class="field">
+          <label for="boss-select">ボス選択</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input type="text" id="boss-select" list="dl-boss" placeholder="ボス名を検索・選択">
+            <button type="button" id="btn-clear-boss" class="btn-secondary" title="クリア" style="padding:7px 10px; flex-shrink:0;">×</button>
+          </div>
+          <datalist id="dl-boss"></datalist>
+        </div>
+        <div class="field">
+          <label for="e-type-display">エネミータイプ</label>
+          <input type="text" id="e-type-display" value="-" readonly style="background: var(--sub-color-2); font-weight: 700;">
+        </div>
+        <div class="field" id="boss-diff-field">
+          <label for="boss-diff">難易度</label>
+          <select id="boss-diff" disabled>
+            <option value="Easy">Easy</option>
+            <option value="Normal" selected>Normal</option>
+            <option value="Hard">Hard</option>
+            <option value="Lunatic">Lunatic</option>
+            <option value="Ultimate">Ultimate</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="field"><label for="e-lv">敵Lv</label><input type="number" id="e-lv" value="250"></div>
+        <div class="field">
+          <label for="e-elem">敵属性</label>
+          <select id="e-elem">
+            <option value="無">無</option>
+            <option value="火">火(水弱点)</option>
+            <option value="水">水(風弱点)</option>
+            <option value="風">風(地弱点)</option>
+            <option value="地">地(火弱点)</option>
+            <option value="光">光(闇弱点)</option>
+            <option value="闇">闇(光弱点)</option>
+          </select>
+        </div>
+        <div class="field"><label for="e-hp">敵HP</label><input type="text" id="e-hp" value="-"></div>
+        <div class="field"><label for="e-def">敵DEF</label><input type="number" id="e-def" value="1000"></div>
+        <div class="field"><label for="e-mdef">敵MDEF</label><input type="number" id="e-mdef" value="1000"></div>
+        <div class="field"><label for="e-flee">敵FLEE</label><input type="number" id="e-flee" value="0"></div>
+        <div class="field"><label for="e-pres">物理耐性(%)</label><input type="number" id="e-pres" value="0"></div>
+        <div class="field"><label for="e-mres">魔法耐性(%)</label><input type="number" id="e-mres" value="0"></div>
+        <div class="field"><label for="e-cres">クリティカル耐性</label><input type="number" id="e-cres" value="0"></div>
+        <div class="field"><label for="e-wres">武器耐性(%)</label><input type="number" id="e-wres" value="0"></div>
+        <div class="field">
+          <label for="e-break">破壊付与</label>
+          <select id="e-break">
+            <option value="0">なし</option>
+            <option value="1">あり(DEF半減)</option>
+          </select>
+        </div>
+        <div class="field"><label for="e-nightmare">ナイトメアDEF減算</label><input type="number" id="e-nightmare" value="0"></div>
+        <div class="field">
+          <label for="e-weaken">衰弱付与</label>
+          <select id="e-weaken">
+            <option value="0">なし</option>
+            <option value="1">あり(+25%)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- 行動速度目標 -->
+  <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; box-shadow: var(--shadow-soft);">
+    <div class="grid">
+      <div class="field">
+        <label for="req-aspd">行動速度目標</label>
+        <select id="req-aspd">
+          <option value="0">無視する(火力優先)</option>
+          <option value="50" selected>行動速度50%を満たす</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 計算実行ボタン ＆ 進捗バー -->
+  <button type="button" class="btn" id="btn-calc">計算する</button>
+
+  <div class="worker-progress" id="worker-progress">
+    <div class="progress-header">
+      <span id="progress-text">探索中...</span>
+      <span id="progress-best" style="color:var(--success); font-weight:700;"></span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- 結果出力領域 -->
+  <div id="results-area"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
