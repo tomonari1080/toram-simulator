@@ -138,11 +138,11 @@
             <label class="prop-equip-label" for="custom-name-main">メイン武器</label>
             <input type="text" id="custom-name-main" class="prop-equip-name" placeholder="装備名">
           </div>
-          <div style="margin-bottom:8px;">
-            <select id="weapon-preset-select" aria-label="武器プロパティプリセット" style="width:100%;">
-              <option value="">-- プリセットから反映 --</option>
-            </select>
+          <div style="margin-bottom:8px; display:flex; gap:6px; align-items:center;">
+            <input type="text" id="weapon-preset-select" list="dl-preset-main" aria-label="武器プロパティプリセット" placeholder="プリセット検索" style="width:100%;">
+            <button type="button" id="btn-clear-preset-main" class="btn-secondary" title="クリア" style="padding:5px 9px; flex-shrink:0;">×</button>
           </div>
+          <datalist id="dl-preset-main"></datalist>
           <div id="prop-main"></div>
           <button type="button" class="btn-small" onclick="addPropRow('prop-main')">+ 追加</button>
         </div>
@@ -152,11 +152,11 @@
             <label class="prop-equip-label" for="custom-name-sub">サブ武器</label>
             <input type="text" id="custom-name-sub" class="prop-equip-name" placeholder="自動探索">
           </div>
-          <div style="margin-bottom:8px;">
-            <select id="sub-preset-select" aria-label="サブ武器プリセット" style="width:100%;">
-              <option value="">-- 自動探索 --</option>
-            </select>
+          <div style="margin-bottom:8px; display:flex; gap:6px; align-items:center;">
+            <input type="text" id="sub-preset-select" list="dl-preset-sub" aria-label="サブ武器プリセット" placeholder="自動探索" style="width:100%;">
+            <button type="button" id="btn-clear-preset-sub" class="btn-secondary" title="クリア" style="padding:5px 9px; flex-shrink:0;">×</button>
           </div>
+          <datalist id="dl-preset-sub"></datalist>
           <div id="prop-sub"></div>
           <button type="button" class="btn-small" onclick="addPropRow('prop-sub')">+ 追加</button>
         </div>
@@ -166,11 +166,11 @@
             <label class="prop-equip-label" for="custom-name-body">体装備</label>
             <input type="text" id="custom-name-body" class="prop-equip-name" placeholder="装備名">
           </div>
-          <div style="margin-bottom:8px;">
-            <select id="body-preset-select" aria-label="体装備プロパティプリセット" style="width:100%;">
-              <option value="">-- プリセットから反映 --</option>
-            </select>
+          <div style="margin-bottom:8px; display:flex; gap:6px; align-items:center;">
+            <input type="text" id="body-preset-select" list="dl-preset-body" aria-label="体装備プロパティプリセット" placeholder="プリセット検索" style="width:100%;">
+            <button type="button" id="btn-clear-preset-body" class="btn-secondary" title="クリア" style="padding:5px 9px; flex-shrink:0;">×</button>
           </div>
+          <datalist id="dl-preset-body"></datalist>
           <div id="prop-body"></div>
           <button type="button" class="btn-small" onclick="addPropRow('prop-body')">+ 追加</button>
         </div>
@@ -180,11 +180,11 @@
             <label class="prop-equip-label" for="custom-name-add">追加装備</label>
             <input type="text" id="custom-name-add" class="prop-equip-name" placeholder="自動探索">
           </div>
-          <div style="margin-bottom:8px;">
-            <select id="add-preset-select" aria-label="追加装備プリセット" style="width:100%;">
-              <option value="">-- 自動探索 --</option>
-            </select>
+          <div style="margin-bottom:8px; display:flex; gap:6px; align-items:center;">
+            <input type="text" id="add-preset-select" list="dl-preset-add" aria-label="追加装備プリセット" placeholder="自動探索" style="width:100%;">
+            <button type="button" id="btn-clear-preset-add" class="btn-secondary" title="クリア" style="padding:5px 9px; flex-shrink:0;">×</button>
           </div>
+          <datalist id="dl-preset-add"></datalist>
           <div id="prop-add"></div>
           <button type="button" class="btn-small" onclick="addPropRow('prop-add')">+ 追加</button>
         </div>
@@ -194,11 +194,11 @@
             <label class="prop-equip-label" for="custom-name-spec">特殊装備</label>
             <input type="text" id="custom-name-spec" class="prop-equip-name" placeholder="自動探索">
           </div>
-          <div style="margin-bottom:8px;">
-            <select id="spec-preset-select" aria-label="特殊装備プリセット" style="width:100%;">
-              <option value="">-- 自動探索 --</option>
-            </select>
+          <div style="margin-bottom:8px; display:flex; gap:6px; align-items:center;">
+            <input type="text" id="spec-preset-select" list="dl-preset-spec" aria-label="特殊装備プリセット" placeholder="自動探索" style="width:100%;">
+            <button type="button" id="btn-clear-preset-spec" class="btn-secondary" title="クリア" style="padding:5px 9px; flex-shrink:0;">×</button>
           </div>
+          <datalist id="dl-preset-spec"></datalist>
           <div id="prop-spec"></div>
           <button type="button" class="btn-small" onclick="addPropRow('prop-spec')">+ 追加</button>
         </div>
@@ -442,6 +442,12 @@
           <option value="0">無視する(火力優先)</option>
           <option value="50" selected>行動速度50%を満たす</option>
         </select>
+      </div>
+      <div class="field" style="grid-column: span 3; justify-content: end;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.86rem; font-weight:700; color:var(--text); padding: 7px 0;">
+          <input type="checkbox" id="exclude-impractical-crysta" checked style="width:auto; accent-color: var(--main-accent);">
+          <span>非実用クリスタを除外（◇コロンデッド / ◇オロロコロン / ◇呪われたクリスタ / ◇真夏の情熱）</span>
+        </label>
       </div>
     </div>
   </div>

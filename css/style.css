@@ -1016,3 +1016,126 @@ select:disabled {
     grid-column: span 1 !important;
   }
 }
+
+/* #1 詳細ステータス ＆ 内訳パネル */
+.stat-detail-section {
+  margin-top: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.stat-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.stat-detail-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.stat-detail-item:hover {
+  border-color: var(--sub-accent);
+  box-shadow: 0 2px 8px rgba(133, 169, 219, 0.22);
+}
+
+.stat-detail-item.active {
+  border-color: var(--main-accent);
+  background: rgba(222, 147, 175, 0.1);
+  box-shadow: 0 2px 10px rgba(222, 147, 175, 0.24);
+}
+
+.stat-detail-item.wide {
+  grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+  .stat-detail-item.wide {
+    grid-column: span 1;
+  }
+}
+
+.stat-detail-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.stat-detail-val {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.stat-breakdown-box {
+  margin-top: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.stat-breakdown-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stat-breakdown-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.stat-breakdown-note {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.stat-breakdown-list {
+  display: grid;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.stat-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.stat-breakdown-row:nth-child(odd) {
+  background: rgba(210, 223, 243, 0.22);
+}
+
+.stat-breakdown-src {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stat-breakdown-effect {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--accent);
+}
+

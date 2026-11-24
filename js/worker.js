@@ -367,16 +367,30 @@ function resolveEquipItemProps(item, wType, subType, bType) {
   return { ...item, p: mergedP };
 }
 
+const IMPRACTICAL_CRYSTA_NAMES = new Set([
+  "◇コロンデッド",
+  "◇オロロコロン",
+  "◇呪われたクリスタ",
+  "◇真夏の情熱"
+]);
+
 self.onmessage = function (e) {
   const startTime = performance.now();
-  const { c, baseP, db: rawDb, fixed, slots, customEquip } = e.data;
+  const { c, baseP, db: rawDb, fixed, slots, customEquip, excludeImpracticalCrysta } = e.data;
+
+  const fixedCrystaNames = new Set([
+    fixed?.mainC1, fixed?.mainC2, fixed?.bodyC1, fixed?.bodyC2,
+    fixed?.addC1, fixed?.addC2, fixed?.specC1, fixed?.specC2
+  ].filter(Boolean));
 
   const resolveList = (arr) => (arr || []).map(it => resolveEquipItemProps(it, c.wt, c.subType, c.bt));
   const db = {
     sub: resolveList(rawDb.sub),
     add: resolveList(rawDb.add),
     spec: resolveList(rawDb.spec),
-    crysta: resolveList(rawDb.crysta)
+    crysta: resolveList(rawDb.crysta).filter(it =>
+      !excludeImpracticalCrysta || fixedCrystaNames.has(it.name) || !IMPRACTICAL_CRYSTA_NAMES.has(it.name)
+    )
   };
 
   const SUB_PROP_ENABLED_TYPES = ["盾", "短剣", "巻物", "矢"];
@@ -683,9 +697,21 @@ self.onmessage = function (e) {
     }
   }
 
-  const cleanBuild = (b) => {
+  const cleanBuild = (b, includeSources = false) => {
     if (!b || !b.exp) return { exp: 0 };
     const copy = { ...b };
+    if (includeSources && b._refs) {
+      const r = b._refs;
+      copy.equipSources = {
+        sub: { name: r.sub?.name || "", p: r.sub?.p || {} },
+        add: { name: r.add?.name || "", p: r.add?.p || {} },
+        spec: { name: r.spec?.name || "", p: r.spec?.p || {} },
+        mainCrysta: { label: r.mc?.label || "", p: r.mc?.p || {} },
+        bodyCrysta: { label: r.bc?.label || "", p: r.bc?.p || {} },
+        addCrysta:  { label: r.ac?.label || "", p: r.ac?.p || {} },
+        specCrysta: { label: r.sc?.label || "", p: r.sc?.p || {} }
+      };
+    }
     delete copy._refs;
     delete copy._sig;
     return copy;
@@ -700,8 +726,8 @@ self.onmessage = function (e) {
 
   self.postMessage({
     type: "done",
-    top: cleanBuild(top),
-    rankings: topBuilds.map(cleanBuild),
+    top: cleanBuild(top, true),
+    rankings: topBuilds.map(b => cleanBuild(b, false)),
     checked,
     elapsedMs,
     crystaPairsValidated: mainCrys.rawPairsCount + bodyCrys.rawPairsCount + addCrys.rawPairsCount + specCrys.rawPairsCount,

@@ -638,20 +638,56 @@ function parsePassiveCSV(csv, defaultType = "パッシブ") {
       cur = {
         name: title,
         type: type || defaultType,
+        rel: [],
         rows: []
       };
     }
 
     if (cur && rawKey) {
-      cur.rows.push({
-        rawKey,
-        calcKey: mapAvatarKeyForCalc(rawKey),
-        expr,
-        limit
-      });
+      if (rawKey === "関連スキル") {
+        const rels = (expr || "").split(/[、,]/).map(s => s.trim()).filter(Boolean);
+        rels.forEach(r => {
+          if (r !== cur.name && !cur.rel.includes(r)) cur.rel.push(r);
+        });
+      } else {
+        cur.rows.push({
+          rawKey,
+          calcKey: mapAvatarKeyForCalc(rawKey),
+          expr,
+          limit
+        });
+      }
     }
   }
   if (cur) skills.push(cur);
+
+  // デフォルトの排他スキルペア補完
+  const defaultGroups = [
+    ["ウォークライ", "ウォークライ（両手剣）"]
+  ];
+  const skillMap = new Map(skills.map(sk => [sk.name, sk]));
+  defaultGroups.forEach(group => {
+    group.forEach(a => {
+      const skA = skillMap.get(a);
+      if (!skA) return;
+      group.forEach(b => {
+        if (a !== b && skillMap.has(b) && !skA.rel.includes(b)) {
+          skA.rel.push(b);
+        }
+      });
+    });
+  });
+
+  // 関連スキルの双方向リンク補完（片側のみ記載されていても相互排他にする）
+  skills.forEach(sk => {
+    sk.rel.forEach(targetName => {
+      const target = skillMap.get(targetName);
+      if (target && !target.rel.includes(sk.name)) {
+        target.rel.push(sk.name);
+      }
+    });
+  });
+
   return skills;
 }
 

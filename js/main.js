@@ -1015,6 +1015,33 @@ function renderActivePresets() {
   renderSkillPresetList("active-presets", DB.active, syncActivePresetsUI);
 }
 
+function syncSkillExclusiveState(container, skillList) {
+  if (!container) return;
+  const checkedNames = new Set();
+  container.querySelectorAll(".passive-item").forEach(box => {
+    const cb = box.querySelector(".passive-cb");
+    const name = box.getAttribute("data-skill-name");
+    if (cb && cb.checked && name) checkedNames.add(name);
+  });
+
+  container.querySelectorAll(".passive-item").forEach(box => {
+    const name = box.getAttribute("data-skill-name");
+    const skill = (skillList || []).find(x => x.name === name);
+    const cb = box.querySelector(".passive-cb");
+    if (!skill || !cb) return;
+
+    const conflictWith = (skill.rel || []).find(r => r !== name && checkedNames.has(r));
+    const isBlocked = !cb.checked && Boolean(conflictWith);
+    cb.disabled = isBlocked;
+    if (isBlocked) {
+      box.classList.add("disabled-weapon");
+      box.title = `「${conflictWith}」と同時選択できません`;
+    } else {
+      box.title = "";
+    }
+  });
+}
+
 // 現在のメイン武器・サブ武器・プレイヤーLvに応じてパッシブスキルの有効性と効果量表示を更新する
 function syncPassivePresetsUI() {
   const container = document.getElementById("passive-presets");
@@ -1049,6 +1076,8 @@ function syncPassivePresetsUI() {
       }
     }
   });
+
+  syncSkillExclusiveState(container, DB.passive);
 
   // パッシブのSLvに依存するバフスキルも追従更新
   syncActivePresetsUI();
@@ -1089,6 +1118,8 @@ function syncActivePresetsUI() {
       }
     }
   });
+
+  syncSkillExclusiveState(container, DB.active);
 }
 
 function getSkillPresetSum(containerId, skillList) {
@@ -1246,17 +1277,20 @@ function syncSubWeaponOptions() {
   const curSub = subSelect.value;
   const hasProps = SUB_PROP_ENABLED_TYPES.includes(curSub);
 
+  const subPresetDl = document.getElementById("dl-preset-sub");
+  const subPresetClear = document.getElementById("btn-clear-preset-sub");
   if (subPresetSelect) {
     const prevVal = subPresetSelect.value;
     const filteredSubs = hasProps
       ? DB.sub.filter(it => it.type === curSub || it.limit === curSub)
       : [];
-    subPresetSelect.innerHTML = `<option value="">-- 自動探索 --</option>` +
-      filteredSubs.map(it => `<option value="${it.name}">${it.name}</option>`).join("");
+    if (subPresetDl) {
+      subPresetDl.innerHTML = filteredSubs.map(it => `<option value="${it.name}">`).join("");
+    }
     subPresetSelect.disabled = !hasProps;
-    if (hasProps && prevVal && filteredSubs.some(it => it.name === prevVal)) {
-      subPresetSelect.value = prevVal;
-    } else {
+    subPresetSelect.placeholder = hasProps ? "自動探索" : "-";
+    if (subPresetClear) subPresetClear.disabled = !hasProps;
+    if (!(hasProps && prevVal && filteredSubs.some(it => it.name === prevVal))) {
       subPresetSelect.value = "";
     }
   }
@@ -1329,16 +1363,11 @@ function syncPropSubToSubElem() {
   }
 }
 
-function renderDBEquipPresetOptions(selectId, list) {
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-  const prevVal = sel.value;
+function renderDBEquipPresetOptions(datalistId, list) {
+  const dl = document.getElementById(datalistId);
+  if (!dl) return;
   const items = list || [];
-  sel.innerHTML = `<option value="">-- 自動探索 --</option>` +
-    items.map(it => `<option value="${it.name}">${it.name}</option>`).join("");
-  if (prevVal && items.some(it => it.name === prevVal)) {
-    sel.value = prevVal;
-  }
+  dl.innerHTML = items.map(it => `<option value="${it.name}">`).join("");
 }
 
 function applyDBEquipPreset(presetName, list, propContainerId, customNameId) {
@@ -1346,14 +1375,15 @@ function applyDBEquipPreset(presetName, list, propContainerId, customNameId) {
   const nameInput = document.getElementById(customNameId);
   if (!propEl) return;
 
-  if (!presetName) {
+  const trimmed = (presetName || "").trim();
+  if (!trimmed) {
     propEl.innerHTML = "";
     if (nameInput) nameInput.value = "";
     syncManualEquipStatus();
     return;
   }
 
-  const item = (list || []).find(it => it.name === presetName);
+  const item = (list || []).find(it => it.name === trimmed);
   if (!item) return;
 
   const wType = s("w-type") || "両手剣";
@@ -1385,11 +1415,10 @@ function isWeaponPresetRecommended(recStr, wType, subType) {
   });
 }
 
-function renderEquipPresetOptions(selectId, list) {
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
+function renderEquipPresetOptions(datalistId, list) {
+  const dl = document.getElementById(datalistId);
+  if (!dl) return;
 
-  const prevVal = sel.value;
   const wType = s("w-type") || "両手剣";
   const subType = s("sub-type") || "なし";
   const items = list || [];
@@ -1404,47 +1433,27 @@ function renderEquipPresetOptions(selectId, list) {
     }
   });
 
-  sel.innerHTML = "";
-  const defaultOpt = document.createElement("option");
-  defaultOpt.value = "";
-  defaultOpt.textContent = "-- プリセットから反映 --";
-  sel.appendChild(defaultOpt);
-
-  if (recommended.length > 0) {
-    const grpRec = document.createElement("optgroup");
-    grpRec.label = "★ 推奨プリセット";
-    recommended.forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p.name;
-      opt.textContent = p.name;
-      grpRec.appendChild(opt);
-    });
-    sel.appendChild(grpRec);
-  }
-
-  if (others.length > 0) {
-    const grpOther = document.createElement("optgroup");
-    grpOther.label = recommended.length > 0 ? "その他のプリセット" : "プリセット一覧";
-    others.forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p.name;
-      opt.textContent = p.recommended ? `${p.name} (${p.recommended})` : p.name;
-      grpOther.appendChild(opt);
-    });
-    sel.appendChild(grpOther);
-  }
-
-  if (prevVal && items.some(p => p.name === prevVal)) {
-    sel.value = prevVal;
-  }
+  dl.innerHTML = "";
+  recommended.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.name;
+    opt.label = "★ 推奨";
+    dl.appendChild(opt);
+  });
+  others.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.name;
+    if (p.recommended) opt.label = p.recommended;
+    dl.appendChild(opt);
+  });
 }
 
 function renderWeaponPresetOptions() {
-  renderEquipPresetOptions("weapon-preset-select", DB.weaponPreset);
+  renderEquipPresetOptions("dl-preset-main", DB.weaponPreset);
 }
 
 function renderBodyPresetOptions() {
-  renderEquipPresetOptions("body-preset-select", DB.bodyPreset);
+  renderEquipPresetOptions("dl-preset-body", DB.bodyPreset);
 }
 
 function applyEquipPreset(presetName, list, propContainerId, customNameId) {
@@ -1574,8 +1583,8 @@ function populateDatalists() {
     dl.innerHTML = arr.map(it => `<option value="${it.name}">`).join("");
   };
 
-  renderDBEquipPresetOptions("add-preset-select", DB.add);
-  renderDBEquipPresetOptions("spec-preset-select", DB.spec);
+  renderDBEquipPresetOptions("dl-preset-add", DB.add);
+  renderDBEquipPresetOptions("dl-preset-spec", DB.spec);
 
   fillDl("dl-crys-main", DB.crysta.filter(c => c.type === "武器クリスタ" || c.type === "ノーマルクリスタ"));
   fillDl("dl-crys-body", DB.crysta.filter(c => c.type === "体クリスタ" || c.type === "ノーマルクリスタ"));
@@ -1665,7 +1674,7 @@ function renderCrystaChips(crystaNames, slotCount) {
 }
 
 // 探索結果の描画
-function renderResults(payload, slots, customEquip) {
+function renderResults(payload, slots, customEquip, c, baseSources) {
   const { top, rankings, checked, elapsedMs } = payload;
   const resultsArea = document.getElementById("results-area");
 
@@ -1762,9 +1771,376 @@ function renderResults(payload, slots, customEquip) {
         <span class="stat-pill">属性補正合計: <b>+${top.elemP}%</b></span>
       </div>
 
+      <details class="stat-detail-section" open>
+        <summary>#1 最終ステータス詳細（項目をクリックで内訳表示）</summary>
+        <div class="panel-body" id="top-detailed-stats-body"></div>
+      </details>
+
       ${runnerUpsHtml}
     </div>
   `;
+
+  if (c && baseSources) {
+    renderDetailedStatsPanel(c, top, baseSources);
+  }
+}
+
+function buildDetailedStatusReport(c, top, baseSources) {
+  const eq = top.equipSources || {};
+  const allSources = [
+    ...baseSources,
+    { name: `メイン武器クリスタ (${eq.mainCrysta?.label || "なし"})`, p: eq.mainCrysta?.p || {} },
+    { name: `サブ武器 (${eq.sub?.name || top.sub || "なし"})`, p: eq.sub?.p || {} },
+    { name: `体装備クリスタ (${eq.bodyCrysta?.label || "なし"})`, p: eq.bodyCrysta?.p || {} },
+    { name: `追加装備 (${eq.add?.name || top.add || "-"})`, p: eq.add?.p || {} },
+    { name: `追加装備クリスタ (${eq.addCrysta?.label || "なし"})`, p: eq.addCrysta?.p || {} },
+    { name: `特殊装備 (${eq.spec?.name || top.spec || "-"})`, p: eq.spec?.p || {} },
+    { name: `特殊装備クリスタ (${eq.specCrysta?.label || "なし"})`, p: eq.specCrysta?.p || {} }
+  ];
+
+  const sumV = (key) => {
+    let total = 0;
+    allSources.forEach(src => {
+      const val = src.p?.[key];
+      if (typeof val === "number") total += val;
+    });
+    return total;
+  };
+
+  const collectSources = (keys, extraRows = []) => {
+    const rows = [...extraRows];
+    allSources.forEach(src => {
+      const parts = [];
+      keys.forEach(k => {
+        const val = src.p?.[k];
+        if (typeof val === "number" && val !== 0) {
+          parts.push(formatEffectLabel(k, val));
+        } else if (typeof val === "string" && val !== "") {
+          parts.push(`${k}: ${val}`);
+        }
+      });
+      if (parts.length > 0) {
+        rows.push({ sourceName: src.name, detail: parts.join(" / ") });
+      }
+    });
+    return rows;
+  };
+
+  const T_STR = Math.floor(c.str * (1 + sumV("STR+〇%") / 100)) + sumV("STR+〇");
+  const T_DEX = Math.floor(c.dex * (1 + sumV("DEX+〇%") / 100)) + sumV("DEX+〇");
+  const T_INT = Math.floor(c.int * (1 + sumV("INT+〇%") / 100)) + sumV("INT+〇");
+  const T_AGI = Math.floor(c.agi * (1 + sumV("AGI+〇%") / 100)) + sumV("AGI+〇");
+  const T_VIT = Math.floor(c.vit * (1 + sumV("VIT+〇%") / 100)) + sumV("VIT+〇");
+
+  const maxHP = Math.floor(Math.floor(93 + (T_VIT + 22.41) * c.lv / 3) * (1 + sumV("最大HP+〇%") / 100)) + sumV("最大HP+〇");
+  const maxMP = Math.floor(Math.floor(c.lv + 99 + c.tec + T_INT / 10) * (1 + sumV("最大MP+〇%") / 100)) + sumV("最大MP+〇");
+  const ampr = Math.floor(Math.floor(10 + maxMP / 100) * (1 + sumV("攻撃MP回復+〇%") / 100)) + sumV("攻撃MP回復+〇");
+
+  const subP = eq.sub?.p || {};
+  let wAtkBase = c.wt === "手甲" ? Math.floor(c.watk * (1 + Math.min(50, 5 * c.knLv) / 100)) : c.watk;
+  if (c.wt === "弓" && c.subType === "矢") wAtkBase += (subP["武器ATK"] || 0);
+  if (c.wt === "自動弓" && c.subType === "矢") wAtkBase += Math.floor((subP["武器ATK"] || 0) / 2);
+  const tWAtk = Math.floor(wAtkBase * (1 + (c.wref * c.wref) / 100) + c.wref) + Math.floor(wAtkBase * sumV("武器ATK+〇%") / 100) + sumV("武器ATK+〇");
+
+  let wStabBase = c.wstab;
+  if (c.wt === "弓" && c.subType === "矢") wStabBase += (subP["安定率"] || 0);
+  if (c.wt === "自動弓" && c.subType === "矢") wStabBase += Math.floor((subP["安定率"] || 0) / 2);
+  const pStab = Math.max(0, Math.min(100, wStabBase + sumV("安定率+〇%")));
+  const mStabMin = Math.max(0, Math.min(90, Math.floor((pStab + 100) / 2)));
+  const mStabMax = Math.max(100, Math.min(110, 100 + Math.floor((pStab - 80) / 2)));
+
+  const pHit = Math.floor((c.lv + T_DEX) * (1 + sumV("命中+〇%") / 100)) + sumV("命中+〇");
+  const rawPCr = Math.floor(Math.floor(25 + c.crt / 3.4) * (1 + sumV("クリティカル率+〇%") / 100)) + sumV("クリティカル率+〇");
+  const pCr = c.wt === "双剣" ? Math.floor(rawPCr * 0.4) : rawPCr;
+
+  let pCd = Math.floor((150 + Math.max(T_STR / 5, (T_STR + T_AGI) / 10)) * (1 + sumV("クリティカルダメージ+〇%") / 100)) + sumV("クリティカルダメージ+〇");
+  if (pCd > 300) pCd = 300 + Math.floor((pCd - 300) / 2);
+
+  let mCr = 0;
+  if (c.eWeak) mCr += Math.floor(pCr / 2);
+  mCr += Math.floor(pCr * c.sbLv / 40);
+  if ((top.weaponAttr || "無") === "無") mCr += Math.floor(pCr / 4);
+  const mCd = Math.floor(100 + (pCd - 100) * (20 + c.sbLv) / 40);
+
+  const tCspd = Math.floor(Math.floor(c.lv + T_DEX * 2.94 + T_AGI * 1.16) * (1 + sumV("詠唱速度+〇%") / 100)) + sumV("詠唱速度+〇");
+  const physPierce = Math.min(100, sumV("物理貫通+〇%"));
+  const magPierce = Math.min(100, sumV("魔法貫通+〇%"));
+  const shortDmg = sumV("近距離の威力+〇%");
+  const longDmg = sumV("遠距離の威力+〇%");
+  const unshFlat = sumV("抜刀攻撃+〇");
+  const unshPct = sumV("抜刀攻撃+〇%");
+
+  const elemList = ["火", "水", "風", "地", "光", "闇", "無"];
+  const commonElemAdv = sumV("属性有利+〇%");
+  const elemSummary = elemList.map(el => `${el}+${commonElemAdv + sumV(`${el}属性にダメージ+〇%`)}%`).join(" / ");
+
+  return [
+    {
+      id: "base-stats",
+      wide: true,
+      label: "補正後ステータス",
+      valueText: `STR ${T_STR} / DEX ${T_DEX} / INT ${T_INT} / AGI ${T_AGI} / VIT ${T_VIT} (CRT ${c.crt} / TEC ${c.tec} / MEN ${c.men} / LUK ${c.luk})`,
+      note: "基礎値 × (1 + %) + 固定値",
+      rows: collectSources(
+        ["STR+〇", "STR+〇%", "DEX+〇", "DEX+〇%", "INT+〇", "INT+〇%", "AGI+〇", "AGI+〇%", "VIT+〇", "VIT+〇%"],
+        [{ sourceName: "基礎ステータス", detail: `STR ${c.str} / DEX ${c.dex} / INT ${c.int} / AGI ${c.agi} / VIT ${c.vit}` }]
+      )
+    },
+    {
+      id: "hp",
+      label: "HP",
+      valueText: maxHP.toLocaleString(),
+      note: `基礎 ${Math.floor(93 + (T_VIT + 22.41) * c.lv / 3).toLocaleString()} / HP+${sumV("最大HP+〇%")}% / +${sumV("最大HP+〇")}`,
+      rows: collectSources(
+        ["最大HP+〇%", "最大HP+〇", "VIT+〇%", "VIT+〇"],
+        [{ sourceName: "基礎計算 (Lv & 補正後VIT)", detail: `${Math.floor(93 + (T_VIT + 22.41) * c.lv / 3).toLocaleString()}` }]
+      )
+    },
+    {
+      id: "mp",
+      label: "MP",
+      valueText: maxMP.toLocaleString(),
+      note: `基礎 ${Math.floor(c.lv + 99 + c.tec + T_INT / 10).toLocaleString()} / MP+${sumV("最大MP+〇%")}% / +${sumV("最大MP+〇")}`,
+      rows: collectSources(
+        ["最大MP+〇%", "最大MP+〇", "INT+〇%", "INT+〇"],
+        [{ sourceName: "基礎計算 (Lv & TEC & 補正後INT)", detail: `${Math.floor(c.lv + 99 + c.tec + T_INT / 10).toLocaleString()}` }]
+      )
+    },
+    {
+      id: "ampr",
+      label: "攻撃MP回復",
+      valueText: String(ampr),
+      note: `基礎 ${Math.floor(10 + maxMP / 100)} / +${sumV("攻撃MP回復+〇%")}% / +${sumV("攻撃MP回復+〇")}`,
+      rows: collectSources(
+        ["攻撃MP回復+〇%", "攻撃MP回復+〇", "最大MP+〇%", "最大MP+〇"],
+        [{ sourceName: "基礎計算 (10 + 最大MP/100)", detail: `${Math.floor(10 + maxMP / 100)}` }]
+      )
+    },
+    {
+      id: "watk",
+      label: "武器ATK",
+      valueText: tWAtk.toLocaleString(),
+      note: `基礎 ${wAtkBase} / 精錬+${c.wref} / +${sumV("武器ATK+〇%")}% / +${sumV("武器ATK+〇")}`,
+      rows: collectSources(
+        ["武器ATK+〇%", "武器ATK+〇", "武器ATK", "サブ武器ATK"],
+        [{ sourceName: "メイン武器基礎ATK・精錬", detail: `基礎 ${c.watk} / 精錬 +${c.wref}` }]
+      )
+    },
+    {
+      id: "stab",
+      label: "安定率",
+      valueText: c.isMag ? `${pStab}% (魔法 ${mStabMin}〜${mStabMax}%)` : `${pStab}%`,
+      note: `武器基礎 ${c.wstab}% / プロパ合計 +${sumV("安定率+〇%")}%`,
+      rows: collectSources(
+        ["安定率+〇%", "安定率", "サブ武器安定率"],
+        [{ sourceName: "メイン武器安定率", detail: `${c.wstab}%` }]
+      )
+    },
+    {
+      id: "atk",
+      label: "ATK",
+      valueText: top.fAtk.toLocaleString(),
+      note: `総武器ATK ${tWAtk} / ATK+${sumV("ATK+〇%")}% / +${sumV("ATK+〇")}`,
+      rows: collectSources(
+        ["ATK+〇%", "ATK+〇", "武器ATK+〇%", "武器ATK+〇", "STR+〇%", "STR+〇", "DEX+〇%", "DEX+〇", "AGI+〇%", "AGI+〇", "INT+〇%", "INT+〇"],
+        [{ sourceName: "基礎 (Lv + 総武器ATK + ステータスATK)", detail: `Lv ${c.lv} + 総武器ATK ${tWAtk}` }]
+      )
+    },
+    {
+      id: "phys-pierce",
+      label: "物理貫通",
+      valueText: `${physPierce}%`,
+      note: `合計 ${sumV("物理貫通+〇%")}% (上限100%)`,
+      rows: collectSources(["物理貫通+〇%"])
+    },
+    {
+      id: "matk",
+      label: "MATK",
+      valueText: top.fMatk.toLocaleString(),
+      note: `MATK+${sumV("MATK+〇%")}% / +${sumV("MATK+〇")}`,
+      rows: collectSources(
+        ["MATK+〇%", "MATK+〇", "武器ATK+〇%", "武器ATK+〇", "INT+〇%", "INT+〇", "DEX+〇%", "DEX+〇", "STR+〇%", "STR+〇"],
+        [{ sourceName: "基礎Lv / 武器MATK / ステータスMATK", detail: `Lv ${c.lv}` }]
+      )
+    },
+    {
+      id: "mag-pierce",
+      label: "魔法貫通",
+      valueText: `${magPierce}%`,
+      note: `合計 ${sumV("魔法貫通+〇%")}% (上限100%)`,
+      rows: collectSources(["魔法貫通+〇%"])
+    },
+    {
+      id: "hit",
+      label: "命中",
+      valueText: pHit.toLocaleString(),
+      note: `基礎 ${c.lv + T_DEX} / 命中+${sumV("命中+〇%")}% / +${sumV("命中+〇")} / 絶対命中+${sumV("絶対命中+〇%")}%`,
+      rows: collectSources(
+        ["命中+〇%", "命中+〇", "絶対命中+〇%", "DEX+〇%", "DEX+〇"],
+        [{ sourceName: "基礎計算 (Lv + 補正後DEX)", detail: `${c.lv + T_DEX}` }]
+      )
+    },
+    {
+      id: "pcr",
+      label: "物理クリティカル率",
+      valueText: `${pCr}`,
+      note: c.wt === "双剣" ? `双剣-60%適用 (適用前 ${rawPCr})` : `基礎 ${Math.floor(25 + c.crt / 3.4)} / +${sumV("クリティカル率+〇%")}% / +${sumV("クリティカル率+〇")}`,
+      rows: collectSources(
+        ["クリティカル率+〇%", "クリティカル率+〇"],
+        [{ sourceName: "基礎 (25 + CRT/3.4)", detail: `${Math.floor(25 + c.crt / 3.4)}` }]
+      )
+    },
+    {
+      id: "pcd",
+      label: "物理クリティカルダメージ",
+      valueText: `${pCd}%`,
+      note: `基礎 ${Math.floor(150 + Math.max(T_STR / 5, (T_STR + T_AGI) / 10))}% / +${sumV("クリティカルダメージ+〇%")}% / +${sumV("クリティカルダメージ+〇")}`,
+      rows: collectSources(
+        ["クリティカルダメージ+〇%", "クリティカルダメージ+〇", "STR+〇%", "STR+〇", "AGI+〇%", "AGI+〇"],
+        [{ sourceName: "基礎計算 (150 + 補正後STR/AGI依存)", detail: `${Math.floor(150 + Math.max(T_STR / 5, (T_STR + T_AGI) / 10))}%` }]
+      )
+    },
+    {
+      id: "mcr",
+      label: "魔法クリティカル率",
+      valueText: `${mCr}`,
+      note: `衰弱弱点 ${c.eWeak ? Math.floor(pCr / 2) : 0} + スペルバースト(${c.sbLv}) ${Math.floor(pCr * c.sbLv / 40)} + 無属性 ${(top.weaponAttr || "無") === "無" ? Math.floor(pCr / 4) : 0}`,
+      rows: collectSources(
+        ["クリティカル率+〇%", "クリティカル率+〇"],
+        [
+          { sourceName: "物理クリティカル率", detail: `${pCr}` },
+          { sourceName: "スペルバースト / 衰弱 / 無属性補正", detail: `+${mCr}` }
+        ]
+      )
+    },
+    {
+      id: "mcd",
+      label: "魔法クリティカルダメージ",
+      valueText: `${mCd}%`,
+      note: `100 + (物理CD ${pCd}% - 100) × (20 + SB ${c.sbLv}) / 40`,
+      rows: collectSources(
+        ["クリティカルダメージ+〇%", "クリティカルダメージ+〇"],
+        [{ sourceName: "物理CDからの変換", detail: `物理CD ${pCd}% → 魔法CD ${mCd}%` }]
+      )
+    },
+    {
+      id: "aspd",
+      label: "攻撃速度",
+      valueText: top.tAspd.toLocaleString(),
+      note: `ASPD+${sumV("攻撃速度+〇%")}% / +${sumV("攻撃速度+〇")} / 体:${c.bt} / サブ:${c.subType}`,
+      rows: collectSources(
+        ["攻撃速度+〇%", "攻撃速度+〇", "AGI+〇%", "AGI+〇", "DEX+〇%", "DEX+〇", "STR+〇%", "STR+〇"],
+        [{ sourceName: "装甲/サブ補正", detail: `体:${c.bt} / サブ:${c.subType}` }]
+      )
+    },
+    {
+      id: "action-speed",
+      label: "行動速度",
+      valueText: `${top.aspd}%`,
+      note: `ASPD由来 ${Math.max(0, Math.floor((top.tAspd - 1000) / 180))}% + 行動速度+${sumV("行動速度+〇%")}% (上限50%)`,
+      rows: collectSources(
+        ["行動速度+〇%", "攻撃速度+〇%", "攻撃速度+〇"],
+        [{ sourceName: "ASPD (${top.tAspd}) 由来", detail: `+${Math.max(0, Math.floor((top.tAspd - 1000) / 180))}%` }]
+      )
+    },
+    {
+      id: "cspd",
+      label: "詠唱速度",
+      valueText: tCspd.toLocaleString(),
+      note: `基礎 ${Math.floor(c.lv + T_DEX * 2.94 + T_AGI * 1.16)} / +${sumV("詠唱速度+〇%")}% / +${sumV("詠唱速度+〇")}`,
+      rows: collectSources(
+        ["詠唱速度+〇%", "詠唱速度+〇", "DEX+〇%", "DEX+〇", "AGI+〇%", "AGI+〇"],
+        [{ sourceName: "基礎計算 (Lv + DEX×2.94 + AGI×1.16)", detail: `${Math.floor(c.lv + T_DEX * 2.94 + T_AGI * 1.16)}` }]
+      )
+    },
+    {
+      id: "short-dmg",
+      label: "近距離の威力",
+      valueText: `${shortDmg >= 0 ? "+" : ""}${shortDmg}%`,
+      note: "7m以下で適用",
+      rows: collectSources(["近距離の威力+〇%"])
+    },
+    {
+      id: "long-dmg",
+      label: "遠距離の威力",
+      valueText: `${longDmg >= 0 ? "+" : ""}${longDmg}%`,
+      note: "8m以上で適用",
+      rows: collectSources(["遠距離の威力+〇%"])
+    },
+    {
+      id: "unsh-flat",
+      label: "抜刀攻撃の威力補正",
+      valueText: `${unshFlat >= 0 ? "+" : ""}${unshFlat}`,
+      note: "抜刀判定あり時に加算",
+      rows: collectSources(["抜刀攻撃+〇"])
+    },
+    {
+      id: "unsh-pct",
+      label: "抜刀攻撃の威力倍率",
+      valueText: `${unshPct >= 0 ? "+" : ""}${unshPct}%`,
+      note: "抜刀判定あり時に乗算",
+      rows: collectSources(["抜刀攻撃+〇%"])
+    },
+    {
+      id: "elem-adv",
+      wide: true,
+      label: "各属性有利",
+      valueText: elemSummary,
+      note: `対${c.eElem}属性の実適用補正合計: +${top.elemP}%`,
+      rows: collectSources([
+        "属性有利+〇%", "火属性にダメージ+〇%", "水属性にダメージ+〇%",
+        "風属性にダメージ+〇%", "地属性にダメージ+〇%", "光属性にダメージ+〇%",
+        "闇属性にダメージ+〇%", "無属性にダメージ+〇%", "メイン武器の属性", "サブ武器の属性"
+      ])
+    }
+  ];
+}
+
+function renderDetailedStatsPanel(c, top, baseSources) {
+  const container = document.getElementById("top-detailed-stats-body");
+  if (!container) return;
+
+  const items = buildDetailedStatusReport(c, top, baseSources);
+  let selectedId = items[0]?.id || "atk";
+
+  const draw = () => {
+    const activeItem = items.find(it => it.id === selectedId) || items[0];
+    const rowsHtml = activeItem.rows.length > 0
+      ? activeItem.rows.map(r => `
+          <div class="stat-breakdown-row">
+            <span class="stat-breakdown-src">${r.sourceName}</span>
+            <span class="stat-breakdown-effect">${r.detail}</span>
+          </div>
+        `).join("")
+      : `<div style="font-size:0.8rem; color:var(--muted); padding:4px 0;">該当する装備・バフからの補正はありません。</div>`;
+
+    container.innerHTML = `
+      <div class="stat-detail-grid">
+        ${items.map(it => `
+          <button type="button" class="stat-detail-item${it.wide ? " wide" : ""}${it.id === selectedId ? " active" : ""}" data-stat-id="${it.id}">
+            <div class="stat-detail-label">${it.label}</div>
+            <div class="stat-detail-val">${it.valueText}</div>
+          </button>
+        `).join("")}
+      </div>
+      <div class="stat-breakdown-box">
+        <div class="stat-breakdown-head">
+          <div class="stat-breakdown-title">${activeItem.label} の内訳（合計: ${activeItem.valueText}）</div>
+          <div class="stat-breakdown-note">${activeItem.note}</div>
+        </div>
+        <div class="stat-breakdown-list">${rowsHtml}</div>
+      </div>
+    `;
+
+    container.querySelectorAll(".stat-detail-item").forEach(btn => {
+      btn.addEventListener("click", () => {
+        selectedId = btn.dataset.statId;
+        draw();
+      });
+    });
+  };
+
+  draw();
 }
 
 // プロパティ辞書へのマージヘルパー
@@ -1815,23 +2191,39 @@ function startCalculation() {
   };
 
   const buffContainers = [
-    "prop-food", "prop-avatar", "prop-passive", "prop-active",
-    "prop-area", "prop-item", "prop-registlet", "prop-guild",
-    "prop-main", "prop-body"
+    { id: "prop-main", label: customEquip.mainName ? `メイン武器 (${customEquip.mainName})` : "メイン武器プロパティ" },
+    { id: "prop-body", label: customEquip.bodyName ? `体装備 (${customEquip.bodyName})` : "体装備プロパティ" },
+    { id: "prop-food", label: "料理 (手入力)" },
+    { id: "prop-guild", label: "ギルド飯 (手入力)" },
+    { id: "prop-registlet", label: "レジスタレット (手入力)" },
+    { id: "prop-avatar", label: "おしゃれ装備 (手入力)" },
+    { id: "prop-item", label: "アイテムバフ (手入力)" },
+    { id: "prop-passive", label: "パッシブスキル (手入力)" },
+    { id: "prop-active", label: "バフスキル (手入力)" },
+    { id: "prop-area", label: "エリアバフ" }
   ];
   const baseP = {};
-  buffContainers.forEach(id => {
-    mergeIntoBaseP(baseP, getPropSum(id));
+  const baseSources = [];
+  buffContainers.forEach(({ id, label }) => {
+    const p = getPropSum(id);
+    mergeIntoBaseP(baseP, p);
+    if (Object.keys(p).length > 0) baseSources.push({ name: label, p });
   });
 
-  mergeIntoBaseP(baseP, getFoodPresetSum());
-  mergeIntoBaseP(baseP, getGuildFoodPresetSum());
-  mergeIntoBaseP(baseP, getRegistletPresetSum());
-  mergeIntoBaseP(baseP, getAvatarPresetSum());
-  mergeIntoBaseP(baseP, getItemBuffPresetSum());
-  mergeIntoBaseP(baseP, getPassivePresetSum());
-  mergeIntoBaseP(baseP, getActivePresetSum());
-  mergeIntoBaseP(baseP, getTraitPresetSum());
+  const presetSources = [
+    { name: "料理", p: getFoodPresetSum() },
+    { name: "ギルド飯", p: getGuildFoodPresetSum() },
+    { name: "レジスタレット", p: getRegistletPresetSum() },
+    { name: "おしゃれ装備", p: getAvatarPresetSum() },
+    { name: "アイテムバフ", p: getItemBuffPresetSum() },
+    { name: "パッシブスキル", p: getPassivePresetSum() },
+    { name: "バフスキル", p: getActivePresetSum() },
+    { name: "特性", p: getTraitPresetSum() }
+  ];
+  presetSources.forEach(src => {
+    mergeIntoBaseP(baseP, src.p);
+    if (Object.keys(src.p || {}).length > 0) baseSources.push(src);
+  });
 
   const slots = {
     main: v("slot-main"),
@@ -1894,7 +2286,7 @@ function startCalculation() {
       btnCalc.textContent = "計算する";
       progBar.style.width = "100%";
       setTimeout(() => progBox.classList.remove("active"), 250);
-      renderResults(data, slots, customEquip);
+      renderResults(data, slots, customEquip, c, baseSources);
     }
   };
 
@@ -1908,7 +2300,8 @@ function startCalculation() {
     `;
   };
 
-  searchWorker.postMessage({ c, baseP, db: DB, fixed, slots, customEquip });
+  const excludeImpracticalCrysta = Boolean(document.getElementById("exclude-impractical-crysta")?.checked);
+  searchWorker.postMessage({ c, baseP, db: DB, fixed, slots, customEquip, excludeImpracticalCrysta });
 }
 
 // 初期化
@@ -1942,26 +2335,32 @@ window.addEventListener("DOMContentLoaded", () => {
   if (subElemEl) {
     subElemEl.addEventListener("change", syncSubElemToPropSub);
   }
-  const weaponPresetEl = document.getElementById("weapon-preset-select");
-  if (weaponPresetEl) {
-    weaponPresetEl.addEventListener("change", (e) => applyWeaponPreset(e.target.value));
-  }
-  const subPresetEl = document.getElementById("sub-preset-select");
-  if (subPresetEl) {
-    subPresetEl.addEventListener("change", (e) => applyDBEquipPreset(e.target.value, DB.sub, "prop-sub", "custom-name-sub"));
-  }
-  const bodyPresetEl = document.getElementById("body-preset-select");
-  if (bodyPresetEl) {
-    bodyPresetEl.addEventListener("change", (e) => applyBodyPreset(e.target.value));
-  }
-  const addPresetEl = document.getElementById("add-preset-select");
-  if (addPresetEl) {
-    addPresetEl.addEventListener("change", (e) => applyDBEquipPreset(e.target.value, DB.add, "prop-add", "custom-name-add"));
-  }
-  const specPresetEl = document.getElementById("spec-preset-select");
-  if (specPresetEl) {
-    specPresetEl.addEventListener("change", (e) => applyDBEquipPreset(e.target.value, DB.spec, "prop-spec", "custom-name-spec"));
-  }
+  const bindSearchPreset = (inputId, clearBtnId, onApply, onClear) => {
+    const el = document.getElementById(inputId);
+    const btn = document.getElementById(clearBtnId);
+    if (el) {
+      el.addEventListener("input", (e) => onApply(e.target.value));
+      el.addEventListener("change", (e) => onApply(e.target.value));
+    }
+    if (btn && el) {
+      btn.addEventListener("click", () => {
+        el.value = "";
+        if (onClear) onClear();
+        el.focus();
+      });
+    }
+  };
+  bindSearchPreset("weapon-preset-select", "btn-clear-preset-main", (val) => applyWeaponPreset(val));
+  bindSearchPreset("sub-preset-select", "btn-clear-preset-sub",
+    (val) => applyDBEquipPreset(val, DB.sub, "prop-sub", "custom-name-sub"),
+    () => applyDBEquipPreset("", DB.sub, "prop-sub", "custom-name-sub"));
+  bindSearchPreset("body-preset-select", "btn-clear-preset-body", (val) => applyBodyPreset(val));
+  bindSearchPreset("add-preset-select", "btn-clear-preset-add",
+    (val) => applyDBEquipPreset(val, DB.add, "prop-add", "custom-name-add"),
+    () => applyDBEquipPreset("", DB.add, "prop-add", "custom-name-add"));
+  bindSearchPreset("spec-preset-select", "btn-clear-preset-spec",
+    (val) => applyDBEquipPreset(val, DB.spec, "prop-spec", "custom-name-spec"),
+    () => applyDBEquipPreset("", DB.spec, "prop-spec", "custom-name-spec"));
   ["p-lv", "p-str", "p-dex", "sub-ref"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("input", syncPassivePresetsUI);
