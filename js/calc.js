@@ -8,9 +8,9 @@ const W_DATA = {
   "杖":     { atk:{s:3,d:0,i:1,a:0}, matk:{s:0,i:4,d:1,a:0}, aspd:{b:60,a:1.8,i:0.2,s:0,d:0}, stab:{s:0.05,d:0,a:0} },
   "魔導具": { atk:{s:0,d:0,i:2,a:2}, matk:{s:0,i:4,d:1,a:0}, aspd:{b:90,a:4,i:0.2,s:0,d:0}, stab:{d:0.1,s:0,a:0} },
   "手甲":   { atk:{s:0,d:0.5,i:0,a:2}, matk:{s:0,i:4,d:1,a:0}, aspd:{b:120,s:0.1,d:0.1,a:4.6,i:0}, stab:{d:0.025,s:0,a:0} },
-  "旋風槍": { atk:{s:2.5,d:0,i:0,a:1.5}, matk:{s:0,i:2,d:1,a:1}, aspd:{b:25,s:0.2,a:3.5,d:0,i:0}, stab:{s:0.05,d:0.05,a:0} },
+  "旋風槍": { atk:{s:2.5,d:0,i:0,a:1.5}, matk:{s:0,i:2,d:1,a:1}, aspd:{b:25,s:0.2,a:3.5,d:0,i:0}, stab:{s:0.05,d:0,a:0.05} },
   "抜刀剣": { atk:{s:1.5,d:2.5,i:0,a:0}, matk:{s:0,i:1.5,d:1,a:0}, aspd:{b:200,s:0.3,a:3.9,d:0,i:0}, stab:{s:0.075,d:0.025,a:0} },
-  "素手":   { atk:{s:1,d:0,i:0,a:0}, matk:{s:0,i:3,d:1,a:0}, aspd:{b:1000,a:9.6,s:0,d:0,i:0}, stab:{a:0.333,s:0,d:0} }
+  "素手":   { atk:{s:1,d:0,i:0,a:0}, matk:{s:0,i:3,d:1,a:0}, aspd:{b:1000,a:9.6,s:0,d:0,i:0}, stab:{a:1/3,s:0,d:0} }
 };
 
 // 数値取得用ヘルパー
@@ -91,7 +91,8 @@ function calculateBuild(c, props, sub, baseP, ignoreAspdReq = false) {
     const tSubWAtk = Math.floor(subWAtkBase * (1 + (subRef * subRef) / 200) + subRef) + Math.floor(subWAtkBase * sumV("武器ATK+〇%") / 100) + sumV("武器ATK+〇");
     const sSubAtk = T_STR * 1 + T_AGI * 3;
     const SUB_ATK = Math.floor((c.lv + tSubWAtk + sSubAtk) * (1 + sumV("ATK+〇%") / 100)) + sumV("ATK+〇");
-    const subStab = Math.max(0, Math.min(100, Math.floor((c.subStab || 0) / 2) + sumV("安定率+〇%")));
+    const sSubStab = T_STR * 0.06 + T_AGI * 0.04;
+    const subStab = Math.max(0, Math.min(100, Math.floor((c.subStab || 0) / 2 + sSubStab) + sumV("安定率+〇%")));
     refStat = F_ATK + Math.floor(SUB_ATK * subStab / 100);
   }
   else refStat = F_ATK;
@@ -100,7 +101,8 @@ function calculateBuild(c, props, sub, baseP, ignoreAspdReq = false) {
   if(c.wt==="弓" && c.subType==="矢") wStabBase += (sub.p["安定率"]||0);
   if(c.wt==="自動弓" && c.subType==="矢") wStabBase += Math.floor((sub.p["安定率"]||0)/2);
   
-  let pStab = Math.max(0, Math.min(100, wStabBase + sumV("安定率+〇%")));
+  const sStab = T_STR * wd.stab.s + T_DEX * wd.stab.d + T_AGI * wd.stab.a;
+  let pStab = Math.max(0, Math.min(100, Math.floor(wStabBase + sStab) + sumV("安定率+〇%")));
   let mStabMin = Math.max(0, Math.min(90, Math.floor((pStab+100)/2)));
   let mStabMax = Math.max(100, Math.min(110, 100 + Math.floor((pStab-80)/2)));
   let effStab = c.isMag ? (mStabMin + mStabMax)/2 : pStab;

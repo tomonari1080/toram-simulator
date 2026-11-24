@@ -1833,10 +1833,12 @@ function buildDetailedStatusReport(c, top, baseSources) {
   if (c.wt === "自動弓" && c.subType === "矢") wAtkBase += Math.floor((subP["武器ATK"] || 0) / 2);
   const tWAtk = Math.floor(wAtkBase * (1 + (c.wref * c.wref) / 100) + c.wref) + Math.floor(wAtkBase * sumV("武器ATK+〇%") / 100) + sumV("武器ATK+〇");
 
+  const wd = (typeof W_DATA !== "undefined" && W_DATA[c.wt]) ? W_DATA[c.wt] : { stab: { s: 0, d: 0, a: 0 } };
   let wStabBase = c.wstab;
   if (c.wt === "弓" && c.subType === "矢") wStabBase += (subP["安定率"] || 0);
   if (c.wt === "自動弓" && c.subType === "矢") wStabBase += Math.floor((subP["安定率"] || 0) / 2);
-  const pStab = Math.max(0, Math.min(100, wStabBase + sumV("安定率+〇%")));
+  const sStab = T_STR * wd.stab.s + T_DEX * wd.stab.d + T_AGI * wd.stab.a;
+  const pStab = Math.max(0, Math.min(100, Math.floor(wStabBase + sStab) + sumV("安定率+〇%")));
   const mStabMin = Math.max(0, Math.min(90, Math.floor((pStab + 100) / 2)));
   const mStabMax = Math.max(100, Math.min(110, 100 + Math.floor((pStab - 80) / 2)));
 
@@ -1921,10 +1923,13 @@ function buildDetailedStatusReport(c, top, baseSources) {
       id: "stab",
       label: "安定率",
       valueText: c.isMag ? `${pStab}% (魔法 ${mStabMin}〜${mStabMax}%)` : `${pStab}%`,
-      note: `武器基礎 ${c.wstab}% / プロパ合計 +${sumV("安定率+〇%")}%`,
+      note: `武器基礎 ${c.wstab}% + ステータス由来 ${sStab.toFixed(1)}% / プロパ +${sumV("安定率+〇%")}%`,
       rows: collectSources(
-        ["安定率+〇%", "安定率", "サブ武器安定率"],
-        [{ sourceName: "メイン武器安定率", detail: `${c.wstab}%` }]
+        ["安定率+〇%", "安定率", "サブ武器安定率", "STR+〇%", "STR+〇", "DEX+〇%", "DEX+〇", "AGI+〇%", "AGI+〇"],
+        [
+          { sourceName: "メイン武器安定率", detail: `${c.wstab}%` },
+          { sourceName: "ステータス由来安定率", detail: `+${sStab.toFixed(1)}% (武器+ステ合計切り捨て後: ${Math.floor(wStabBase + sStab)}%)` }
+        ]
       )
     },
     {
