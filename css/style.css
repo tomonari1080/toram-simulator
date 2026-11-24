@@ -1139,3 +1139,76 @@ select:disabled {
   color: var(--accent);
 }
 
+/* 検索付きカスタムドロップダウン */
+.searchable-select-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.searchable-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-hover);
+  display: none;
+}
+
+.searchable-dropdown.open {
+  display: block;
+}
+
+.searchable-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-bottom: 1px solid rgba(110, 104, 128, 0.08);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.searchable-option:last-child {
+  border-bottom: none;
+}
+
+.searchable-option:hover {
+  background: rgba(133, 169, 219, 0.16);
+}
+
+.searchable-option-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(222, 147, 175, 0.2);
+  color: var(--accent);
+}
+
+.searchable-option-badge.sub {
+  background: var(--sub-color-2);
+  color: var(--muted);
+}
+
+.searchable-empty {
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+

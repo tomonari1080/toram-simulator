@@ -1277,18 +1277,15 @@ function syncSubWeaponOptions() {
   const curSub = subSelect.value;
   const hasProps = SUB_PROP_ENABLED_TYPES.includes(curSub);
 
-  const subPresetDl = document.getElementById("dl-preset-sub");
   const subPresetClear = document.getElementById("btn-clear-preset-sub");
   if (subPresetSelect) {
     const prevVal = subPresetSelect.value;
     const filteredSubs = hasProps
       ? DB.sub.filter(it => it.type === curSub || it.limit === curSub)
       : [];
-    if (subPresetDl) {
-      subPresetDl.innerHTML = filteredSubs.map(it => `<option value="${it.name}">`).join("");
-    }
+    PRESET_OPTION_STORE.sub = filteredSubs.map(it => ({ value: it.name, badge: it.type || "", isRec: false }));
     subPresetSelect.disabled = !hasProps;
-    subPresetSelect.placeholder = hasProps ? "自動探索" : "-";
+    subPresetSelect.placeholder = hasProps ? "検索・選択（空で自動探索）" : "-";
     if (subPresetClear) subPresetClear.disabled = !hasProps;
     if (!(hasProps && prevVal && filteredSubs.some(it => it.name === prevVal))) {
       subPresetSelect.value = "";
@@ -1363,11 +1360,20 @@ function syncPropSubToSubElem() {
   }
 }
 
-function renderDBEquipPresetOptions(datalistId, list) {
-  const dl = document.getElementById(datalistId);
-  if (!dl) return;
-  const items = list || [];
-  dl.innerHTML = items.map(it => `<option value="${it.name}">`).join("");
+const PRESET_OPTION_STORE = {
+  main: [],
+  sub: [],
+  body: [],
+  add: [],
+  spec: []
+};
+
+function renderDBEquipPresetOptions(storeKey, list) {
+  PRESET_OPTION_STORE[storeKey] = (list || []).map(it => ({
+    value: it.name,
+    badge: "",
+    isRec: false
+  }));
 }
 
 function applyDBEquipPreset(presetName, list, propContainerId, customNameId) {
@@ -1415,10 +1421,7 @@ function isWeaponPresetRecommended(recStr, wType, subType) {
   });
 }
 
-function renderEquipPresetOptions(datalistId, list) {
-  const dl = document.getElementById(datalistId);
-  if (!dl) return;
-
+function renderEquipPresetOptions(storeKey, list) {
   const wType = s("w-type") || "両手剣";
   const subType = s("sub-type") || "なし";
   const items = list || [];
@@ -1427,33 +1430,21 @@ function renderEquipPresetOptions(datalistId, list) {
   const others = [];
   items.forEach(p => {
     if (isWeaponPresetRecommended(p.recommended, wType, subType)) {
-      recommended.push(p);
+      recommended.push({ value: p.name, badge: "★ 推奨", isRec: true });
     } else {
-      others.push(p);
+      others.push({ value: p.name, badge: p.recommended || "", isRec: false });
     }
   });
 
-  dl.innerHTML = "";
-  recommended.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.name;
-    opt.label = "★ 推奨";
-    dl.appendChild(opt);
-  });
-  others.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.name;
-    if (p.recommended) opt.label = p.recommended;
-    dl.appendChild(opt);
-  });
+  PRESET_OPTION_STORE[storeKey] = [...recommended, ...others];
 }
 
 function renderWeaponPresetOptions() {
-  renderEquipPresetOptions("dl-preset-main", DB.weaponPreset);
+  renderEquipPresetOptions("main", DB.weaponPreset);
 }
 
 function renderBodyPresetOptions() {
-  renderEquipPresetOptions("dl-preset-body", DB.bodyPreset);
+  renderEquipPresetOptions("body", DB.bodyPreset);
 }
 
 function applyEquipPreset(presetName, list, propContainerId, customNameId) {
@@ -1583,8 +1574,8 @@ function populateDatalists() {
     dl.innerHTML = arr.map(it => `<option value="${it.name}">`).join("");
   };
 
-  renderDBEquipPresetOptions("dl-preset-add", DB.add);
-  renderDBEquipPresetOptions("dl-preset-spec", DB.spec);
+  renderDBEquipPresetOptions("add", DB.add);
+  renderDBEquipPresetOptions("spec", DB.spec);
 
   fillDl("dl-crys-main", DB.crysta.filter(c => c.type === "武器クリスタ" || c.type === "ノーマルクリスタ"));
   fillDl("dl-crys-body", DB.crysta.filter(c => c.type === "体クリスタ" || c.type === "ノーマルクリスタ"));
@@ -2335,30 +2326,97 @@ window.addEventListener("DOMContentLoaded", () => {
   if (subElemEl) {
     subElemEl.addEventListener("change", syncSubElemToPropSub);
   }
-  const bindSearchPreset = (inputId, clearBtnId, onApply, onClear) => {
+  const bindSearchPreset = (inputId, dropdownId, clearBtnId, storeKey, onApply, onClear) => {
     const el = document.getElementById(inputId);
+    const dd = document.getElementById(dropdownId);
     const btn = document.getElementById(clearBtnId);
-    if (el) {
-      el.addEventListener("input", (e) => onApply(e.target.value));
-      el.addEventListener("change", (e) => onApply(e.target.value));
-    }
-    if (btn && el) {
+    if (!el || !dd) return;
+
+    const renderList = (query) => {
+      const options = PRESET_OPTION_STORE[storeKey] || [];
+      const terms = (query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const filtered = terms.length === 0
+        ? options
+        : options.filter(opt => {
+            const hay = `${opt.value} ${opt.badge}`.toLowerCase();
+            return terms.every(t => hay.includes(t));
+          });
+
+      if (filtered.length === 0) {
+        dd.innerHTML = `<div class="searchable-empty">該当する候補がありません</div>`;
+      } else {
+        dd.innerHTML = filtered.slice(0, 80).map(opt => {
+          const badgeHtml = opt.badge
+            ? `<span class="searchable-option-badge${opt.isRec ? "" : " sub"}">${opt.badge}</span>`
+            : "";
+          return `<button type="button" class="searchable-option" data-val="${opt.value.replace(/"/g, "&quot;")}"><span>${opt.value}</span>${badgeHtml}</button>`;
+        }).join("");
+
+        dd.querySelectorAll(".searchable-option").forEach(optBtn => {
+          optBtn.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            const val = optBtn.getAttribute("data-val") || "";
+            el.value = val;
+            dd.classList.remove("open");
+            onApply(val);
+          });
+        });
+      }
+      dd.classList.add("open");
+    };
+
+    el.addEventListener("focus", () => {
+      const options = PRESET_OPTION_STORE[storeKey] || [];
+      const isExactSelected = options.some(o => o.value === el.value.trim());
+      renderList(isExactSelected ? "" : el.value);
+    });
+
+    el.addEventListener("input", () => {
+      renderList(el.value);
+      if (el.value.trim() === "" && onClear) {
+        onClear();
+      }
+    });
+
+    el.addEventListener("blur", () => {
+      setTimeout(() => dd.classList.remove("open"), 120);
+    });
+
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        dd.classList.remove("open");
+      } else if (e.key === "Enter") {
+        const firstOpt = dd.querySelector(".searchable-option");
+        if (dd.classList.contains("open") && firstOpt) {
+          e.preventDefault();
+          const val = firstOpt.getAttribute("data-val") || "";
+          el.value = val;
+          dd.classList.remove("open");
+          onApply(val);
+        }
+      }
+    });
+
+    if (btn) {
       btn.addEventListener("click", () => {
         el.value = "";
+        dd.classList.remove("open");
         if (onClear) onClear();
         el.focus();
       });
     }
   };
-  bindSearchPreset("weapon-preset-select", "btn-clear-preset-main", (val) => applyWeaponPreset(val));
-  bindSearchPreset("sub-preset-select", "btn-clear-preset-sub",
+  bindSearchPreset("weapon-preset-select", "dropdown-preset-main", "btn-clear-preset-main", "main",
+    (val) => applyWeaponPreset(val));
+  bindSearchPreset("sub-preset-select", "dropdown-preset-sub", "btn-clear-preset-sub", "sub",
     (val) => applyDBEquipPreset(val, DB.sub, "prop-sub", "custom-name-sub"),
     () => applyDBEquipPreset("", DB.sub, "prop-sub", "custom-name-sub"));
-  bindSearchPreset("body-preset-select", "btn-clear-preset-body", (val) => applyBodyPreset(val));
-  bindSearchPreset("add-preset-select", "btn-clear-preset-add",
+  bindSearchPreset("body-preset-select", "dropdown-preset-body", "btn-clear-preset-body", "body",
+    (val) => applyBodyPreset(val));
+  bindSearchPreset("add-preset-select", "dropdown-preset-add", "btn-clear-preset-add", "add",
     (val) => applyDBEquipPreset(val, DB.add, "prop-add", "custom-name-add"),
     () => applyDBEquipPreset("", DB.add, "prop-add", "custom-name-add"));
-  bindSearchPreset("spec-preset-select", "btn-clear-preset-spec",
+  bindSearchPreset("spec-preset-select", "dropdown-preset-spec", "btn-clear-preset-spec", "spec",
     (val) => applyDBEquipPreset(val, DB.spec, "prop-spec", "custom-name-spec"),
     () => applyDBEquipPreset("", DB.spec, "prop-spec", "custom-name-spec"));
   ["p-lv", "p-str", "p-dex", "sub-ref"].forEach(id => {
